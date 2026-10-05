@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TravelDocs AI - Azure Intelligent Travel Vault{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <a class="brand" href="/">
+        <span class="brand-icon">✈️</span>
+        <span class="brand-name">TravelDocs <span class="ai-text">AI</span></span>
+      </a>
+      
+      <nav>
+        <a href="/">Dashboard</a>
+        <a href="/trips">Trips</a>
+        <a href="/documents">Documents & AI</a>
+        <a href="/profile">Profile</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="header-status-pill {% if model.configured %}status-active{% else %}status-standby{% endif %}" title="Microsoft Azure AI Foundry Model Status">
+          <span class="pulse-dot"></span>
+          <span>Foundry: <b>{{ model.deployment or 'Unconfigured' }}</b></span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p><b>TravelDocs AI</b> · Enterprise Travel Documentation & Microsoft Azure AI Foundry Service</p>
+      <small>Powered by Microsoft Azure AI Foundry & Azure OpenAI · Secure SQLite Travel Vault</small>
+    </div>
+  </footer>
+</body>
+</html>

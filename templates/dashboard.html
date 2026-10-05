@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | TravelDocs AI{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <small>AZURE OPENAI TRAVEL INTELLIGENCE</small>
+    <h1>One secure vault for every journey.</h1>
+    <p>Manage trips, passports, visas, tickets, hotel bookings, and travel insurance with deep Azure OpenAI cognitive parsing.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/documents">⚡ Auto-Analyze & Add Document</a>
+      <a class="btn btn-secondary" href="/trips">Plan New Trip</a>
+    </div>
+  </div>
+  <div class="orb">✈️</div>
+</section>
+
+<!-- AZURE OPENAI STATUS BANNER -->
+<section class="azure-status-card">
+  <div class="azure-info">
+    <div class="azure-icon">☁️</div>
+    <div>
+      <div class="azure-title-row">
+        <h3>Microsoft Azure AI Foundry</h3>
+        <span class="status-badge {% if model.configured %}badge-live{% else %}badge-warn{% endif %}">
+          {{ model.status_text }}
+        </span>
+      </div>
+      <p class="azure-meta">
+        Provider: <code>{{ model.provider }}</code> · 
+        Endpoint: <code>{{ model.endpoint or 'Not configured' }}</code> · 
+        Deployment: <code>{{ model.deployment or 'None' }}</code>
+      </p>
+    </div>
+  </div>
+  <div class="azure-actions">
+    <button id="btn-test-azure" class="btn btn-secondary">
+      <span id="test-btn-text">🔌 Test Foundry Connection</span>
+      <span id="test-btn-spinner" class="spinner" style="display:none;"></span>
+    </button>
+  </div>
+</section>
+<div id="azure-test-result" class="azure-test-result" style="display:none;"></div>
+
+<div class="stats">
+  <div class="stat-card">
+    <b>{{ trips|length }}</b>
+    <span>Trips Planned</span>
+  </div>
+  <div class="stat-card">
+    <b>{{ documents|length }}</b>
+    <span>Stored Documents</span>
+  </div>
+  <div class="stat-card">
+    <b>{{ expiring|length }}</b>
+    <span>Expiry Alerts (<90d)</span>
+  </div>
+  <div class="stat-card">
+    <b class="{% if model.configured %}text-success{% else %}text-warn{% endif %}">
+      {% if model.configured %}ONLINE{% else %}STANDBY{% endif %}
+    </b>
+    <span>Azure AI Engine</span>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- UPCOMING TRIPS -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Upcoming Trips</h2>
+      <a href="/trips" class="link-sm">View all &rarr;</a>
+    </div>
+    {% for x in trips[:5] %}
+    <div class="row">
+      <div>
+        <b>{{ x.name }}</b>
+        <small>📍 {{ x.destination }} · {{ x.purpose or 'Vacation/Travel' }}</small>
+      </div>
+      <span class="date-badge">{{ x.start_date or 'TBD' }}</span>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No trips yet. <a href="/trips">Create your first trip</a> to link documents!</p>
+    </div>
+    {% endfor %}
+  </section>
+
+  <!-- EXPIRY ALERTS -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Document Expiry Watch</h2>
+      <a href="/documents" class="link-sm">Vault &rarr;</a>
+    </div>
+    {% for x in expiring[:5] %}
+    <div class="row">
+      <div>
+        <b>{{ x.title }}</b>
+        <small>{{ x.doc_type }}{% if x.trip_name %} · {{ x.trip_name }}{% endif %}</small>
+      </div>
+      <strong class="warn">⚠️ {{ x.expiry_date }}</strong>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>✅ All stored documents are valid beyond 90 days.</p>
+    </div>
+    {% endfor %}
+  </section>
+</div>
+
+<!-- AZURE TRAVEL COPILOT CARD -->
+<section class="card ai-copilot-section">
+  <div class="card-head">
+    <div>
+      <h2>🤖 TravelDocs AI Copilot</h2>
+      <p class="subtitle">Ask Azure OpenAI anything about your trips, document validity, visa rules, or itineraries.</p>
+    </div>
+    <span class="badge ai-badge">Live Context Aware</span>
+  </div>
+
+  <div class="chat-container">
+    <div id="chat-messages" class="chat-messages">
+      <div class="chat-bubble assistant">
+        👋 Hi! I am your <b>Azure OpenAI Travel Copilot</b>. I have real-time visibility into your travel vault. Ask me:
+        <ul>
+          <li><i>"Do I have any documents expiring before my upcoming trip?"</i></li>
+          <li><i>"Summarize my travel documents and itinerary."</i></li>
+          <li><i>"What should I pack and prepare for my destination?"</i></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="Ask TravelDocs AI Copilot...">
+      <button id="btn-chat-send" class="btn btn-primary">Send 🚀</button>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Azure Test Connection
+  const btnTest = document.getElementById("btn-test-azure");
+  const testSpinner = document.getElementById("test-btn-spinner");
+  const testText = document.getElementById("test-btn-text");
+  const testResult = document.getElementById("azure-test-result");
+
+  btnTest.addEventListener("click", async () => {
+    testSpinner.style.display = "inline-block";
+    testText.textContent = "Connecting to Foundry...";
+    btnTest.disabled = true;
+    testResult.style.display = "none";
+
+    try {
+      const res = await fetch("/api/model/test-connection", { method: "POST" });
+      const data = await res.json();
+      testResult.style.display = "block";
+      if (data.success) {
+        testResult.className = "azure-test-result success";
+        testResult.innerHTML = `<b>✅ ${data.provider || 'Microsoft Azure AI Foundry'} Connected Successfully!</b><br>
+          Latency: <code>${data.latency_ms} ms</code> · Ping response: <code>${data.reply}</code>`;
+      } else {
+        testResult.className = "azure-test-result error";
+        testResult.innerHTML = `<b>⚠️ Connection Check:</b> ${data.error || "Unable to reach Microsoft Azure AI Foundry"}<br>
+          <small>Check your <code>MODEL_ENDPOINT</code>, <code>MODEL_DEPLOYMENT</code>, and <code>MODEL_API_KEY</code> in <code>.env</code>.</small>`;
+      }
+    } catch (e) {
+      testResult.style.display = "block";
+      testResult.className = "azure-test-result error";
+      testResult.innerHTML = `<b>❌ Request Error:</b> ${e.message}`;
+    } finally {
+      testSpinner.style.display = "none";
+      testText.textContent = "🔌 Test Foundry Connection";
+      btnTest.disabled = false;
+    }
+  });
+
+  // Travel Copilot Chat
+  const chatMessages = document.getElementById("chat-messages");
+  const chatInput = document.getElementById("chat-input");
+  const btnSend = document.getElementById("btn-chat-send");
+  let chatHistory = [];
+
+  async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    // User message
+    const userDiv = document.createElement("div");
+    userDiv.className = "chat-bubble user";
+    userDiv.textContent = text;
+    chatMessages.appendChild(userDiv);
+    chatInput.value = "";
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Loading assistant bubble
+    const loadingDiv = document.createElement("div");
+    loadingDiv.className = "chat-bubble assistant loading";
+    loadingDiv.innerHTML = "Thinking with Azure OpenAI...";
+    chatMessages.appendChild(loadingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, history: chatHistory })
+      });
+      const data = await res.json();
+      const reply = data.reply || "No response received.";
+      loadingDiv.className = "chat-bubble assistant";
+      // Render simple formatted markdown or newlines
+      loadingDiv.innerHTML = reply.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+      
+      chatHistory.push({ role: "user", content: text });
+      chatHistory.push({ role: "assistant", content: reply });
+    } catch (err) {
+      loadingDiv.className = "chat-bubble assistant error";
+      loadingDiv.innerHTML = "❌ Failed to communicate with AI Copilot: " + err.message;
+    }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  btnSend.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+});
+</script>
+{% endblock %}

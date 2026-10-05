@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}Travel Documents & AI Vault | TravelDocs AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Travel Documents & AI Vault</h1>
+    <p class="subtitle">Extract dates, PNR, confirmation numbers, and summaries using Azure OpenAI.</p>
+  </div>
+  <div class="ai-status-chip {% if model.configured %}active{% else %}setup{% endif %}">
+    <span class="dot"></span>
+    <span>Azure OpenAI: <b>{{ model.deployment or 'Unconfigured' }}</b></span>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- ADD DOCUMENT & AI EXTRACTOR -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Add New Document</h2>
+      <span class="badge ai-badge">✨ Azure AI Powered</span>
+    </div>
+
+    <!-- AI Quick Extract Tool -->
+    <div class="ai-extract-box">
+      <div class="ai-box-title">
+        <span>⚡ Quick AI Smart Extraction</span>
+        <small>Paste booking text or select a file to auto-populate</small>
+      </div>
+      <textarea id="ai-quick-text" placeholder="Paste flight confirmation email, ticket text, hotel voucher, or visa details here..."></textarea>
+      <div class="ai-action-bar">
+        <button type="button" id="btn-ai-analyze" class="btn btn-secondary">
+          <span id="ai-btn-text">🤖 Analyze with Azure AI</span>
+          <span id="ai-btn-spinner" class="spinner" style="display:none;"></span>
+        </button>
+        <span id="ai-status-msg" class="ai-status-msg"></span>
+      </div>
+      <div id="ai-warning-box" class="ai-warning-box" style="display:none;"></div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="doc-form">
+      <label class="field-label">Document Title *</label>
+      <input id="f-title" name="title" placeholder="e.g. Air India AI-102 Flight Ticket" required>
+
+      <div class="two">
+        <div>
+          <label class="field-label">Document Type</label>
+          <select id="f-doc-type" name="doc_type">
+            <option>Passport</option>
+            <option>Visa</option>
+            <option>Flight Ticket</option>
+            <option>Train Ticket</option>
+            <option>Bus Ticket</option>
+            <option>Hotel Booking</option>
+            <option>Travel Insurance</option>
+            <option>ID Proof</option>
+            <option>Permit</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Linked Trip</label>
+          <select name="trip_id">
+            <option value="">No linked trip</option>
+            {% for t in trips %}
+            <option value="{{t.id}}">{{t.name}} ({{t.destination}})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <label class="field-label">Document / PNR / Policy Number</label>
+      <input id="f-doc-num" name="document_number" placeholder="e.g. 6E-9X42L or P12345678">
+
+      <div class="two">
+        <div>
+          <label class="field-label">Issue Date</label>
+          <input id="f-issue-date" type="date" name="issue_date">
+        </div>
+        <div>
+          <label class="field-label">Expiry / Travel Date</label>
+          <input id="f-expiry-date" type="date" name="expiry_date">
+        </div>
+      </div>
+
+      <label class="field-label">Attach File (PDF, Image, TXT)</label>
+      <input id="f-file" type="file" name="file" accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg">
+
+      <div class="checkbox-row">
+        <label><input type="checkbox" name="auto_ai" value="1" checked> Auto-analyze uploaded file with Azure AI</label>
+      </div>
+
+      <label class="field-label">AI Summary & Critical Details</label>
+      <textarea id="f-summary" name="ai_summary" placeholder="Summary of terminal, baggage, baggage limits, emergency contacts, or visa rules (Auto-filled by Azure AI)"></textarea>
+
+      <button class="btn btn-primary" type="submit">💾 Save Document</button>
+    </form>
+  </section>
+
+  <!-- DOCUMENT VAULT -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Document Vault</h2>
+      <span class="count-pill">{{ documents|length }} items</span>
+    </div>
+
+    <div class="doc-list">
+      {% for d in documents %}
+      <div class="doc-item">
+        <div class="doc-main">
+          <div class="doc-title-row">
+            <span class="doc-icon">
+              {% if d.doc_type == 'Passport' %}🛂
+              {% elif d.doc_type == 'Visa' %}🔏
+              {% elif d.doc_type == 'Flight Ticket' %}✈️
+              {% elif d.doc_type == 'Hotel Booking' %}🏨
+              {% elif d.doc_type == 'Train Ticket' %}🚆
+              {% elif d.doc_type == 'Travel Insurance' %}🛡️
+              {% else %}📄{% endif %}
+            </span>
+            <b>{{ d.title }}</b>
+            <span class="type-tag">{{ d.doc_type }}</span>
+          </div>
+
+          <div class="doc-meta">
+            {% if d.trip_name %}
+            <span>📍 {{ d.trip_name }}</span>
+            {% endif %}
+            {% if d.document_number %}
+            <span>🔢 <code>{{ d.document_number }}</code></span>
+            {% endif %}
+            {% if d.expiry_date %}
+            <span class="expiry-pill">⏳ Expires: {{ d.expiry_date }}</span>
+            {% endif %}
+            {% if d.filename %}
+            <span class="file-pill">📎 {{ d.filename }}</span>
+            {% endif %}
+          </div>
+
+          {% if d.ai_summary %}
+          <div class="doc-ai-box">
+            <div class="ai-box-header">
+              <span class="ai-sparkle">✨ Azure AI Analysis</span>
+            </div>
+            <pre class="ai-summary-text">{{ d.ai_summary }}</pre>
+          </div>
+          {% endif %}
+        </div>
+
+        <form method="post" action="/documents/delete/{{ d.id }}" onsubmit="return confirm('Delete this document?');">
+          <button class="danger-btn" title="Delete document">🗑️</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <p>No documents in vault yet. Use the form on the left or paste an itinerary above to analyze with Azure AI!</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btnAnalyze = document.getElementById("btn-ai-analyze");
+  const quickText = document.getElementById("ai-quick-text");
+  const fileInput = document.getElementById("f-file");
+  const btnSpinner = document.getElementById("ai-btn-spinner");
+  const btnText = document.getElementById("ai-btn-text");
+  const statusMsg = document.getElementById("ai-status-msg");
+  const warningBox = document.getElementById("ai-warning-box");
+
+  btnAnalyze.addEventListener("click", async () => {
+    const text = quickText.value.trim();
+    const file = fileInput.files[0];
+
+    if (!text && !file) {
+      statusMsg.textContent = "Please enter document text or choose a file first.";
+      statusMsg.className = "ai-status-msg text-danger";
+      return;
+    }
+
+    btnSpinner.style.display = "inline-block";
+    btnText.textContent = "Analyzing with Azure AI...";
+    btnAnalyze.disabled = true;
+    statusMsg.textContent = "Connecting to Azure OpenAI deployment...";
+    statusMsg.className = "ai-status-msg";
+    warningBox.style.display = "none";
+    warningBox.innerHTML = "";
+
+    try {
+      let res;
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (text) formData.append("text", text);
+        res = await fetch("/api/model/analyze", {
+          method: "POST",
+          body: formData
+        });
+      } else {
+        res = await fetch("/api/model/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text })
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Analysis failed");
+      }
+
+      // Populate form fields
+      if (data.title) document.getElementById("f-title").value = data.title;
+      if (data.doc_type) {
+        const sel = document.getElementById("f-doc-type");
+        for (let opt of sel.options) {
+          if (opt.value.toLowerCase() === data.doc_type.toLowerCase()) {
+            sel.value = opt.value;
+            break;
+          }
+        }
+      }
+      if (data.document_number) document.getElementById("f-doc-num").value = data.document_number;
+      if (data.issue_date) document.getElementById("f-issue-date").value = data.issue_date;
+      if (data.expiry_date) document.getElementById("f-expiry-date").value = data.expiry_date;
+      if (data.summary) document.getElementById("f-summary").value = data.summary;
+
+      statusMsg.textContent = data.mode === "azure_openai" 
+        ? "✅ Azure OpenAI extracted details successfully!" 
+        : "ℹ️ Extracted via local fallback pattern matching.";
+      statusMsg.className = "ai-status-msg text-success";
+
+      if (data.warnings && data.warnings.length > 0) {
+        warningBox.style.display = "block";
+        warningBox.innerHTML = "<b>⚠️ Travel & AI Alerts:</b><ul>" + 
+          data.warnings.map(w => `<li>${w}</li>`).join("") + "</ul>";
+      }
+    } catch (err) {
+      statusMsg.textContent = "❌ " + err.message;
+      statusMsg.className = "ai-status-msg text-danger";
+    } finally {
+      btnSpinner.style.display = "none";
+      btnText.textContent = "🤖 Analyze with Azure AI";
+      btnAnalyze.disabled = false;
+    }
+  });
+});
+</script>
+{% endblock %}

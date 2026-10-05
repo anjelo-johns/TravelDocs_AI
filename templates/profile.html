@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Traveler Profile | TravelDocs AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Traveler Profile</h1>
+    <p class="subtitle">Personal travel identity used by Azure AI Copilot to check visa and passport validity.</p>
+  </div>
+</div>
+
+<section class="card" style="max-width: 650px; margin: 0 auto;">
+  <div class="card-head">
+    <h2>Primary Traveler Details</h2>
+    <span class="badge ai-badge">Vault Synced</span>
+  </div>
+
+  <form method="post">
+    <label class="field-label">Full Name</label>
+    <input name="name" value="{{ profile.name or '' }}" placeholder="e.g. John Doe">
+
+    <div class="two">
+      <div>
+        <label class="field-label">Email Address</label>
+        <input type="email" name="email" value="{{ profile.email or '' }}" placeholder="john@example.com">
+      </div>
+      <div>
+        <label class="field-label">Phone Number</label>
+        <input type="tel" name="phone" value="{{ profile.phone or '' }}" placeholder="+1 (555) 000-0000">
+      </div>
+    </div>
+
+    <label class="field-label">Passport Number</label>
+    <input name="passport_number" value="{{ profile.passport_number or '' }}" placeholder="e.g. P12345678">
+
+    <label class="field-label">Emergency Contact (Name & Phone)</label>
+    <input name="emergency_contact" value="{{ profile.emergency_contact or '' }}" placeholder="e.g. Jane Doe (+1 555-111-2222)">
+
+    <button class="btn btn-primary" type="submit">💾 Save Profile</button>
+  </form>
+</section>
+{% endblock %}

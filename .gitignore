@@ -1,0 +1,45 @@
+# Environment & Secret Credentials (CRITICAL - DO NOT COMMIT)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Python & Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database & Local User Uploads
+*.db
+*.sqlite3
+travel.db
+uploads/*
+!uploads/.gitkeep
+
+# IDE & OS generated files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

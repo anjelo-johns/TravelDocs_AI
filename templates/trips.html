@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Manage Trips | TravelDocs AI{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Travel Trips</h1>
+    <p class="subtitle">Plan upcoming journeys and associate your documents, tickets, and visas.</p>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- CREATE TRIP -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Plan New Trip</h2>
+    </div>
+    <form method="post">
+      <label class="field-label">Trip Name *</label>
+      <input name="name" placeholder="e.g. Summer Vacation in Tokyo" required>
+
+      <label class="field-label">Destination *</label>
+      <input name="destination" placeholder="e.g. Tokyo, Japan" required>
+
+      <div class="two">
+        <div>
+          <label class="field-label">Start Date</label>
+          <input type="date" name="start_date">
+        </div>
+        <div>
+          <label class="field-label">End Date</label>
+          <input type="date" name="end_date">
+        </div>
+      </div>
+
+      <label class="field-label">Purpose of Travel</label>
+      <input name="purpose" placeholder="e.g. Tourism, Business Conference, Family Visit">
+
+      <label class="field-label">Notes & Checklist</label>
+      <textarea name="notes" placeholder="Packing notes, emergency details, hotel addresses..."></textarea>
+
+      <button class="btn btn-primary" type="submit">✈️ Create Trip</button>
+    </form>
+  </section>
+
+  <!-- SAVED TRIPS -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Your Saved Trips</h2>
+      <span class="count-pill">{{ trips|length }} trips</span>
+    </div>
+
+    {% for x in trips %}
+    <div class="row">
+      <div>
+        <div style="font-weight:700; font-size:16px;">{{ x.name }}</div>
+        <small>📍 <b>{{ x.destination }}</b> · {{ x.start_date or 'TBD' }} &rarr; {{ x.end_date or 'TBD' }}</small>
+        {% if x.purpose %}
+        <small style="color:var(--primary);">🎯 {{ x.purpose }}</small>
+        {% endif %}
+        {% if x.notes %}
+        <p style="margin:6px 0 0; font-size:12px; color:var(--text-muted); background:#f8fafc; padding:6px 10px; border-radius:4px;">{{ x.notes }}</p>
+        {% endif %}
+      </div>
+      <form method="post" action="/trips/delete/{{ x.id }}" onsubmit="return confirm('Delete this trip?');">
+        <button class="danger-btn" title="Delete trip">🗑️</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No trips planned yet. Use the form on the left to start planning!</p>
+    </div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

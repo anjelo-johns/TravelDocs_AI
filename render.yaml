@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: traveldocs-ai
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: MODEL_PROVIDER
+        value: azure_ai_foundry
+      - key: MODEL_ENDPOINT
+        sync: false
+      - key: MODEL_DEPLOYMENT
+        sync: false
+      - key: MODEL_API_KEY
+        sync: false
+      - key: MODEL_API_VERSION
+        value: "2024-10-21"
+      - key: SECRET_KEY
+        generateValue: true
